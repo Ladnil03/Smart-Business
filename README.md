@@ -319,7 +319,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 For issues, questions, or suggestions:
 - Open an issue on [GitHub Issues](https://github.com/Ladnil03/Smart-Business/issues)
-- Email: your-email@example.com
+- Email: ladnil03@gmail.com
 
 ## 🎉 Acknowledgments
 
