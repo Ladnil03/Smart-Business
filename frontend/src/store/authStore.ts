@@ -1,7 +1,27 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { jwtDecode } from 'jwt-decode'
 import { User } from '@/types'
 import api from '@/lib/api'
+
+// Helper to decode JWT and extract user info
+const getUserFromToken = (token: string | null): User | null => {
+  if (!token) return null
+  try {
+    const decoded: any = jwtDecode(token)
+    return {
+      user_id: decoded.user_id || '',
+      email: decoded.email || '',
+      full_name: decoded.full_name || '',
+      shop_name: decoded.shop_name || '',
+      phone: decoded.phone,
+      photo: decoded.photo,
+    }
+  } catch (error) {
+    console.error('Failed to decode JWT:', error)
+    return null
+  }
+}
 
 interface AuthStore {
   user: User | null
@@ -42,7 +62,8 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true, error: null })
         try {
           const response = await api.post('/auth/login', { email, password })
-          const { access_token, user } = response.data.data
+          const { access_token } = response.data.data
+          const user = getUserFromToken(access_token)
 
           set({
             user,
@@ -63,7 +84,8 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true, error: null })
         try {
           const response = await api.post('/auth/register', data)
-          const { access_token, user } = response.data.data
+          const { access_token } = response.data.data
+          const user = getUserFromToken(access_token)
 
           set({
             user,
@@ -97,13 +119,15 @@ export const useAuthStore = create<AuthStore>()(
     {
       name: 'auth-store',
       partialize: (state) => ({
-        user: state.user,
         token: state.token,
       }),
-      // ✅ FIX: Properly set hydrated flag after localStorage restore
+      // ✅ FIX: Derive user from token on hydration
       onRehydrateStorage: () => {
         return (state, error) => {
-          if (state) {
+          if (state && state.token) {
+            state.user = getUserFromToken(state.token)
+            state.isHydrated = true
+          } else if (state) {
             state.isHydrated = true
           }
         }

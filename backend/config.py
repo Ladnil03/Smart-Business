@@ -22,12 +22,23 @@ class Settings(BaseSettings):
         case_sensitive=False
     )
 
+    @field_validator("secret_key")
+    @classmethod
+    def check_secret_length(cls, v: str) -> str:
+        if len(v) < 32:
+            raise ValueError("SECRET_KEY must be at least 32 characters for production security")
+        return v
+
     def get_cors_origins(self) -> list[str]:
         """Parse CORS_ORIGINS as JSON string to list"""
         try:
             return json.loads(self.cors_origins)
         except (json.JSONDecodeError, TypeError):
-            # Fallback to defaults if parsing fails
+            # In production, fail hard if CORS parsing fails
+            environment = os.getenv("ENVIRONMENT", "development")
+            if environment == "production":
+                raise RuntimeError("CORS_ORIGINS must be valid JSON in production")
+            # Fallback to defaults only for non-production
             return ["http://localhost:5173", "http://localhost:3000"]
 
 

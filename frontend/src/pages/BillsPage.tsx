@@ -30,8 +30,8 @@ export const BillsPage: React.FC = () => {
   const [amountPaid, setAmountPaid] = useState(0)
 
   useEffect(() => {
-    fetchCustomers()
-    fetchProducts()
+    useCustomerStore.getState().fetchCustomers()
+    useProductStore.getState().fetchProducts()
     fetchBills()
   }, [])
 

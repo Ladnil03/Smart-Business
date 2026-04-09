@@ -20,7 +20,8 @@
     "lucide-react": "^0.421.0",
     "recharts": "^2.12.5",
     "clsx": "^2.1.1",
-    "date-fns": "^3.0.0"
+    "date-fns": "^3.0.0",
+    "jwt-decode": "^4.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",

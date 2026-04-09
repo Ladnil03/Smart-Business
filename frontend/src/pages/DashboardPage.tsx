@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { LoadingSpinner } from '@/components/ui/Loading'
 import { useAuthStore } from '@/store/authStore'
 import { useCustomerStore } from '@/store/customerStore'
@@ -7,6 +7,7 @@ import { useAIStore } from '@/store/aiStore'
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts'
 import { TrendingUp, Users, Package, AlertCircle, DollarSign, Store } from 'lucide-react'
 import { motion } from 'framer-motion'
+import api from '@/lib/api'
 
 /**
  * ✅ DASHBOARD PAGE
@@ -20,11 +21,28 @@ export const DashboardPage: React.FC = () => {
   const products = useProductStore((state) => state.products)
   const insights = useAIStore((state) => state.insights)
   const isLoading = useAIStore((state) => state.isLoading)
+  const [chartData, setChartData] = useState<any[]>([])
 
   useEffect(() => {
     useCustomerStore.getState().fetchCustomers()
     useProductStore.getState().fetchProducts()
     useAIStore.getState().fetchInsights()
+    
+    const fetchChartData = async () => {
+      try {
+        const res = await api.get("/bills/")
+        const bills = res.data.data
+        const byMonth = bills.reduce((acc: any, b: any) => {
+          const month = new Date(b.created_at).toLocaleString("default", { month: "short" })
+          acc[month] = (acc[month] || 0) + b.total
+          return acc
+        }, {})
+        setChartData(Object.entries(byMonth).map(([name, revenue]) => ({ name, revenue, sales: 0 })))
+      } catch (error) {
+        console.error('Failed to fetch chart data:', error)
+      }
+    }
+    fetchChartData()
   }, [])
 
   const stats = [
@@ -64,14 +82,6 @@ export const DashboardPage: React.FC = () => {
       shadowClass: 'shadow-neon-pink',
       gradient: 'linear-gradient(135deg, rgba(255,45,85,0.2) 0%, transparent 100%)'
     },
-  ]
-
-  const chartData = [
-    { name: 'Jan', sales: 4000, revenue: 2400 },
-    { name: 'Feb', sales: 3000, revenue: 1398 },
-    { name: 'Mar', sales: 2000, revenue: 9800 },
-    { name: 'Apr', sales: 2780, revenue: 3908 },
-    { name: 'May', sales: 1890, revenue: 4800 },
   ]
 
   const COLORS = ['#FF9500', '#00FFD1', '#BD5FFF', '#FF2D55']

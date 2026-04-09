@@ -11,6 +11,10 @@ async def connect_db() -> None:
     db = _client[settings.db_name]
     
     # Create indexes for multi-tenant queries and uniqueness constraints
+    await db.customers.create_index([("owner_id", 1)])
+    await db.products.create_index([("owner_id", 1)])
+    await db.bills.create_index([("owner_id", 1)])
+    await db.transactions.create_index([("owner_id", 1), ("customer_id", 1)])
     await db.customers.create_index([("owner_id", 1), ("phone", 1)])
     await db.products.create_index([("owner_id", 1), ("sku", 1)], unique=True)
     await db.transactions.create_index([("owner_id", 1), ("customer_id", 1), ("created_at", -1)])

@@ -40,12 +40,14 @@ async def create_transaction(
     delta = payload.amount if payload.type == "credit" else -payload.amount
     await db.customers.update_one(
         {"_id": cust_oid},
-        {
-            "$inc": {
-                "total_udhaar": delta,
-                "transactions_count": 1
+        [
+            {
+                "$set": {
+                    "total_udhaar": { "$max": [{ "$add": ["$total_udhaar", delta] }, 0] },
+                    "transactions_count": { "$add": ["$transactions_count", 1] }
+                }
             }
-        },
+        ]
     )
 
     return _serialize(doc)

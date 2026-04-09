@@ -53,6 +53,6 @@ async def get_insights(user: CurrentUser, db: Database) -> dict:
         "data": {
             "total_pending_udhaar": total_pending_udhaar,
             "low_stock_items": low_stock_items,
-            "top_3_customers": top_3_customers,
+            "top_customers": top_3_customers,
         },
     }

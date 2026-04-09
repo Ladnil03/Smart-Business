@@ -15,17 +15,16 @@ def _serialize(doc: dict) -> dict:
 async def create_bill(
     payload: BillCreate, owner_id: str, db: AsyncIOMotorDatabase
 ) -> dict[str, Any] | str:
-    # ── Phase 1: resolve all products and validate stock ─────────────────────
+    # ── Phase 1: resolve all products and validate stock with batched query ─────────────────────
+    product_ids = [ObjectId(item.product_id) for item in payload.items]
+    cursor = db.products.find({"_id": {"$in": product_ids}, "owner_id": owner_id})
+    products = {str(p["_id"]): p async for p in cursor}
+    
     resolved_items: list[dict] = []
     total: float = 0.0
 
     for item in payload.items:
-        try:
-            prod_oid = ObjectId(item.product_id)
-        except Exception:
-            return f"Invalid product_id: {item.product_id}"
-
-        product = await db.products.find_one({"_id": prod_oid, "owner_id": owner_id})
+        product = products.get(item.product_id)
         if not product:
             return f"Product {item.product_id} not found."
         if product["stock"] < item.qty:

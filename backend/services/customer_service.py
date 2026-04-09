@@ -21,7 +21,7 @@ async def create_customer(
         "phone": payload.phone,
         "email": payload.email,
         "address": payload.address,
-        "total_udhaar": 0.0,
+        "total_udhaar": payload.initial_udhaar,
         "transactions_count": 0,
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow(),

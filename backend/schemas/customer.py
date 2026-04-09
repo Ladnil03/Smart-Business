@@ -7,6 +7,7 @@ class CustomerCreate(BaseModel):
     phone: str = Field(min_length=7, max_length=20)
     email: Optional[EmailStr] = None
     address: Optional[str] = Field(None, max_length=500)
+    initial_udhaar: float = 0.0
 
 
 class CustomerUpdate(BaseModel):

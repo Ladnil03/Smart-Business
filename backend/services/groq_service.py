@@ -1,6 +1,9 @@
 from groq import AsyncGroq, APIError
+import logging
 
 from backend.config import settings
+
+logger = logging.getLogger(__name__)
 
 _client = AsyncGroq(api_key=settings.groq_api_key)
 
@@ -22,6 +25,7 @@ async def ask_groq(question: str) -> str:
         )
         return response.choices[0].message.content or "No response received."
     except APIError as exc:
-        return f"AI service is temporarily unavailable. (Error: {exc.status_code})"
+        logging.error(f"Groq API error: {exc.status_code} — {exc.message}")
+        return "AI service is temporarily unavailable. Please try again later."
     except Exception:
         return "Sorry, I could not process your question right now. Please try again later."

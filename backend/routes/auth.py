@@ -9,7 +9,7 @@ router = APIRouter()
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
-@limiter.limit("5/minute")
+@limiter.limit("3/minute")
 async def register(request: Request, payload: RegisterRequest, db: Database) -> dict:
     result = await auth_service.register_user(payload, db)
     if "error" in result:
