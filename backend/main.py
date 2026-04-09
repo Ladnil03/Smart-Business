@@ -3,11 +3,14 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
 
 from backend.database.connection import connect_db, close_db
 from backend.routes import auth, customers, transactions, products, bills, ai
 from backend.utils.dependencies import CurrentUser
 from backend.config import settings
+from backend.middleware.rate_limit import limiter
 
 
 @asynccontextmanager
@@ -24,6 +27,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Add rate limit exception handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.get_cors_origins(),
@@ -35,8 +42,6 @@ app.add_middleware(
 app.include_router(auth.router,         prefix="/auth",         tags=["Auth"])
 app.include_router(customers.router,    prefix="/customers",    tags=["Customers"])
 app.include_router(transactions.router, prefix="/transactions", tags=["Transactions"])
-# Also mount under /customers so GET /customers/{id}/transactions resolves
-app.include_router(transactions.router, prefix="/customers",    tags=["Transactions"], include_in_schema=False)
 app.include_router(products.router,     prefix="/products",     tags=["Products"])
 app.include_router(bills.router,        prefix="/bills",        tags=["Bills"])
 app.include_router(ai.router,           prefix="/ai",           tags=["AI"])

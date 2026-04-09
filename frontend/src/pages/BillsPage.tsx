@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react'
-import { MainLayout } from '@/components/layout/MainLayout'
 import { LoadingSpinner } from '@/components/ui/Loading'
 import { useCustomerStore } from '@/store/customerStore'
 import { useProductStore } from '@/store/productStore'
@@ -8,9 +7,17 @@ import { Plus, Search, FileText, CheckCircle, Clock, Trash2 } from 'lucide-react
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '@/lib/api'
 
+/**
+ * ✅ BILLS PAGE
+ * 
+ * No auth checks here - ProtectedLayout handles it
+ * Just render bills and handle CRUD
+ */
 export const BillsPage: React.FC = () => {
   const customers = useCustomerStore((state) => state.customers)
   const products = useProductStore((state) => state.products)
+  const fetchCustomers = useCustomerStore((state) => state.fetchCustomers)
+  const fetchProducts = useProductStore((state) => state.fetchProducts)
   
   const [bills, setBills] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -23,15 +30,15 @@ export const BillsPage: React.FC = () => {
   const [amountPaid, setAmountPaid] = useState(0)
 
   useEffect(() => {
-    useCustomerStore.getState().fetchCustomers()
-    useProductStore.getState().fetchProducts()
+    fetchCustomers()
+    fetchProducts()
     fetchBills()
   }, [])
 
   const fetchBills = async () => {
     try {
       const response = await api.get('/bills/')
-      setBills(response.data)
+      setBills(response.data.data || [])
     } catch (error) {
       console.error('Failed to fetch bills:', error)
     } finally {
@@ -73,19 +80,20 @@ export const BillsPage: React.FC = () => {
     try {
       await api.post('/bills/', {
         customer_id: selectedCustomerId || null,
-        items: validItems,
-        total_amount: calculateTotal(),
-        amount_paid: amountPaid,
-        status: amountPaid >= calculateTotal() ? 'paid' : amountPaid > 0 ? 'partial' : 'unpaid'
+        items: validItems.map(item => ({
+          product_id: item.product_id,
+          qty: item.quantity,
+        })),
+        paid: amountPaid >= calculateTotal(),
       })
       
       setIsModalOpen(false)
       fetchBills()
       
       if (selectedCustomerId) {
-        fetchCustomers() // Refresh customer balances
+        useCustomerStore.getState().fetchCustomers()
       }
-      fetchProducts() // Refresh inventory
+      useProductStore.getState().fetchProducts()
       
       // Reset form
       setSelectedCustomerId('')
@@ -104,11 +112,9 @@ export const BillsPage: React.FC = () => {
   )
 
   return (
-    <MainLayout title="Billing & Invoices">
-      <div className="p-4 md:p-8 w-full max-w-7xl mx-auto space-y-6">
-        
-        {/* Header Actions */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="p-4 md:p-8 w-full max-w-7xl mx-auto space-y-6">
+      {/* Header Actions */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="relative w-full md:w-96 group">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-on-surface-variant group-focus-within:text-neon-blue transition-colors" />
@@ -206,7 +212,6 @@ export const BillsPage: React.FC = () => {
             </div>
           )}
         </div>
-      </div>
 
       {/* New Bill Modal */}
       <Modal
@@ -341,6 +346,6 @@ export const BillsPage: React.FC = () => {
           </div>
         </form>
       </Modal>
-    </MainLayout>
+    </div>
   )
 }

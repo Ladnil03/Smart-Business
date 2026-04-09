@@ -1,16 +1,21 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { MainLayout } from '@/components/layout/MainLayout'
 import { LoadingSpinner } from '@/components/ui/Loading'
 import { useAuthStore } from '@/store/authStore'
 import { useAIStore } from '@/store/aiStore'
-import { Send, Sparkles, AlertCircle, TrendingUp, Users, Package, Bot } from 'lucide-react'
+import { Send, Sparkles, AlertCircle, TrendingUp, Users, Bot } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
+/**
+ * ✅ AI PAGE
+ * 
+ * No auth checks here - ProtectedLayout handles it
+ * Just render AI chat and handle interactions
+ */
 export const AIPage: React.FC = () => {
   const insights = useAIStore((state) => state.insights)
   const isLoading = useAIStore((state) => state.isLoading)
   const askQuestion = useAIStore((state) => state.askQuestion)
+  const user = useAuthStore((state) => state.user)
   const [question, setQuestion] = useState('')
   const [isAsking, setIsAsking] = useState(false)
   const [chatHistory, setChatHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([
@@ -47,25 +52,15 @@ export const AIPage: React.FC = () => {
     }
   }
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 },
-    },
-  }
-
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
   }
 
   return (
-    <MainLayout title="AI Assistant">
-      <div className="p-4 md:p-8 w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-8 min-h-[calc(100vh-64px)]">
-        
-        {/* Left Column - Insights (Hidden on small screens when typing, or displayed as cards) */}
-        <div className="w-full lg:w-1/3 flex flex-col gap-6">
+    <div className="p-4 md:p-8 w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-8 min-h-[calc(100vh-64px)]">
+      {/* Left Column - Insights (Hidden on small screens when typing, or displayed as cards) */}
+      <div className="w-full lg:w-1/3 flex flex-col gap-6">
           <motion.div variants={itemVariants} initial="hidden" animate="visible" className="relative p-6 rounded-3xl overflow-hidden" style={{
             background: 'rgba(26, 26, 26, 0.4)',
             backdropFilter: 'blur(20px)',
@@ -82,7 +77,7 @@ export const AIPage: React.FC = () => {
               </div>
             </div>
 
-            {aiLoading ? (
+            {isLoading ? (
               <div className="py-8 flex justify-center"><LoadingSpinner /></div>
             ) : (
               <div className="space-y-4 mt-6">
@@ -112,10 +107,10 @@ export const AIPage: React.FC = () => {
                     <Users className="w-4 h-4 text-neon-teal" />
                     <p className="text-sm font-medium text-on-surface-variant">Top Customer</p>
                   </div>
-                  {insights?.top_customers && insights.top_customers.length > 0 ? (
+                  {insights?.top_3_customers && insights.top_3_customers.length > 0 ? (
                     <div>
-                      <p className="text-lg font-bold text-white">{insights.top_customers[0].name}</p>
-                      <p className="text-sm text-neon-teal">₹{insights.top_customers[0].total_udhaar.toLocaleString('en-IN')}</p>
+                      <p className="text-lg font-bold text-white">{insights.top_3_customers[0].name}</p>
+                      <p className="text-sm text-neon-teal">₹{insights.top_3_customers[0].total_udhaar.toLocaleString('en-IN')}</p>
                     </div>
                   ) : (
                     <p className="text-on-surface-variant">No data yet</p>
@@ -149,8 +144,8 @@ export const AIPage: React.FC = () => {
           </motion.div>
         </div>
 
-        {/* Right Column - Chat Window */}
-        <div className="flex-1 flex flex-col h-full rounded-3xl overflow-hidden relative" style={{
+      {/* Right Column - Chat Window */}
+      <div className="flex-1 flex flex-col h-full rounded-3xl overflow-hidden relative" style={{
           background: 'rgba(19, 19, 19, 0.7)',
           backdropFilter: 'blur(30px)',
           border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -253,6 +248,5 @@ export const AIPage: React.FC = () => {
         </div>
 
       </div>
-    </MainLayout>
   )
 }

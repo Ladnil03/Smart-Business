@@ -4,8 +4,9 @@ from typing import Any
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError, InvalidHash
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from bson import ObjectId
 
-from backend.schemas.auth import RegisterRequest, LoginRequest
+from backend.schemas.auth import RegisterRequest, LoginRequest, ProfileUpdateRequest
 from backend.utils.jwt_handler import create_access_token
 
 _pwd_hasher = PasswordHasher()
@@ -65,3 +66,57 @@ async def login_user(
     user_data = _serialize_user(dict(user))
     token = create_access_token({"user_id": str(user["_id"]), "email": user["email"]})
     return {"access_token": token, "token_type": "bearer", "user": user_data}
+
+
+async def get_profile(user_id: str, db: AsyncIOMotorDatabase) -> dict[str, Any]:
+    """Get user profile by user_id"""
+    try:
+        user = await db.users.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return {"error": "User not found."}
+        return {"success": True, "data": _serialize_user(dict(user))}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+async def update_profile(
+    user_id: str, payload: ProfileUpdateRequest, db: AsyncIOMotorDatabase
+) -> dict[str, Any]:
+    """Update user profile information"""
+    try:
+        # Check if new email already exists (if email is being changed)
+        if payload.email:
+            existing = await db.users.find_one({"email": payload.email, "_id": {"$ne": ObjectId(user_id)}})
+            if existing:
+                return {"error": "Email already in use."}
+        
+        # Build update dict with only provided fields
+        update_data = {}
+        if payload.full_name is not None:
+            update_data["full_name"] = payload.full_name
+        if payload.shop_name is not None:
+            update_data["shop_name"] = payload.shop_name
+        if payload.phone is not None:
+            update_data["phone"] = payload.phone
+        if payload.email is not None:
+            update_data["email"] = payload.email
+        if payload.photo is not None:
+            update_data["photo"] = payload.photo
+
+        if not update_data:
+            return {"error": "No fields to update."}
+
+        result = await db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": update_data}
+        )
+
+        if result.matched_count == 0:
+            return {"error": "User not found."}
+
+        # Fetch updated user
+        updated_user = await db.users.find_one({"_id": ObjectId(user_id)})
+        user_data = _serialize_user(dict(updated_user))
+        return {"success": True, "data": user_data}
+    except Exception as e:
+        return {"error": str(e)}

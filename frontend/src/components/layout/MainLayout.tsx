@@ -1,14 +1,22 @@
-import React, { ReactNode, useState } from 'react'
+import React, { useState } from 'react'
+import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 
-interface MainLayoutProps {
-  children: ReactNode;
-  title?: string;
+const TITLE_MAP: Record<string, string> = {
+  '/dashboard': 'Overview',
+  '/customers': 'Customers',
+  '/products': 'Inventory',
+  '/bills': 'Billing & Invoices',
+  '/ai': 'AI Assistant',
+  '/profile': 'Profile Settings',
+  '/settings': 'Settings',
 }
 
-export const MainLayout: React.FC<MainLayoutProps> = ({ children, title = 'Dashboard' }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+export const MainLayout: React.FC = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const location = useLocation()
+  const title = TITLE_MAP[location.pathname] || 'Dashboard'
 
   return (
     <div className="flex h-screen overflow-hidden relative" style={{ backgroundColor: '#0D0D0D' }}>
@@ -23,7 +31,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, title = 'Dashb
         <Topbar title={title} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         <div className="flex-1 overflow-x-hidden overflow-y-auto">
           {/* We ensure a padding top so the sticky topbar isn't covering content, though flex-col does that automatically */}
-          {children}
+          <Outlet />
         </div>
       </div>
     </div>

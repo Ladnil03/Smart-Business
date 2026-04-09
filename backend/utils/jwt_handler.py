@@ -1,9 +1,12 @@
 from datetime import datetime, timedelta
 from typing import Any
+import logging
 
 from jose import JWTError, jwt
 
 from backend.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 def create_access_token(data: dict[str, Any]) -> str:
@@ -21,7 +24,5 @@ def decode_access_token(token: str) -> dict[str, Any] | None:
         )
         return payload
     except JWTError as e:
-        # Log the actual error for debugging
-        print(f"JWT Decode Error: {e}")
-        # Return None instead of empty dict to signal failure
+        logger.warning("JWT decode failed: %s", e)
         return None

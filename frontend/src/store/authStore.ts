@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { User, AuthResponse } from '@/types'
+import { persist } from 'zustand/middleware'
+import { User } from '@/types'
 import api from '@/lib/api'
 
 interface AuthStore {
@@ -8,88 +9,105 @@ interface AuthStore {
   isLoading: boolean
   error: string | null
   isHydrated: boolean
+
+  // Actions
   login: (email: string, password: string) => Promise<void>
   register: (data: { email: string; password: string; full_name: string; shop_name: string; phone?: string }) => Promise<void>
   logout: () => void
+  clearError: () => void
   setUser: (user: User | null) => void
   setToken: (token: string | null) => void
-  hydrate: () => void
 }
 
-const getStoredAuth = () => {
-  const storedUser = localStorage.getItem('user')
-  const token = localStorage.getItem('access_token')
-  const parsedUser = storedUser && storedUser !== 'undefined' ? JSON.parse(storedUser) : null
-  return { user: parsedUser, token }
-}
+/**
+ * ✅ SIMPLE AUTHENTICATION STORE
+ *
+ * This is intentionally minimal:
+ * - Stores token in Zustand + persists to localStorage
+ * - Backend is source of truth for auth validation
+ * - No hydration logic or ProtectedRoute needed
+ * - If backend returns 401, Axios interceptor handles logout
+ */
+export const useAuthStore = create<AuthStore>()(
+  persist(
+    (set, get) => ({
+      user: null,
+      token: null,
+      isLoading: false,
+      error: null,
+      isHydrated: false,
 
-export const useAuthStore = create<AuthStore>((set) => {
-  const { user: storedUser, token: storedToken } = getStoredAuth()
-  
-  console.log('[AuthStore] Initial state:', { storedToken: !!storedToken, storedUser: !!storedUser })
+      // Login
+      login: async (email: string, password: string) => {
+        set({ isLoading: true, error: null })
+        try {
+          const response = await api.post('/auth/login', { email, password })
+          const { access_token, user } = response.data.data
 
-  return {
-    user: storedUser,
-    token: storedToken,
-    isLoading: false,
-    error: null,
-    isHydrated: !!storedToken,
+          set({
+            user,
+            token: access_token,
+            isLoading: false,
+            error: null,
+            isHydrated: true,
+          })
+        } catch (error: any) {
+          const message = error.response?.data?.detail || 'Login failed'
+          set({ error: message, isLoading: false })
+          throw error
+        }
+      },
 
-    hydrate: () => {
-      const { user, token } = getStoredAuth()
-      console.log('[AuthStore.hydrate] Hydrating with token:', !!token)
-      set({ user, token, isHydrated: !!token })
-    },
+      // Register
+      register: async (data) => {
+        set({ isLoading: true, error: null })
+        try {
+          const response = await api.post('/auth/register', data)
+          const { access_token, user } = response.data.data
 
-    login: async (email: string, password: string) => {
-      set({ isLoading: true, error: null })
-      try {
-        const response = await api.post<AuthResponse>('/auth/login', { email, password })
-        const { access_token, user } = response.data.data
-        
-        console.log('[AuthStore.login] Success, setting token:', !!access_token)
-        set({ user, token: access_token, isHydrated: true })
-        localStorage.setItem('access_token', access_token)
-        localStorage.setItem('user', JSON.stringify(user))
-      } catch (error: any) {
-        const message = error.response?.data?.detail || 'Login failed'
-        set({ error: message })
-        throw error
-      } finally {
-        set({ isLoading: false })
-      }
-    },
+          set({
+            user,
+            token: access_token,
+            isLoading: false,
+            error: null,
+            isHydrated: true,
+          })
+        } catch (error: any) {
+          const message = error.response?.data?.detail || 'Registration failed'
+          set({ error: message, isLoading: false })
+          throw error
+        }
+      },
 
-    register: async (data) => {
-      set({ isLoading: true, error: null })
-      try {
-        const response = await api.post<AuthResponse>('/auth/register', data)
-        const { access_token, user } = response.data.data
-        
-        console.log('[AuthStore.register] Success, setting token:', !!access_token)
-        set({ user, token: access_token, isHydrated: true })
-        localStorage.setItem('access_token', access_token)
-        localStorage.setItem('user', JSON.stringify(user))
-      } catch (error: any) {
-        const message = error.response?.data?.detail || 'Registration failed'
-        set({ error: message })
-        throw error
-      } finally {
-        set({ isLoading: false })
-      }
-    },
+      // Logout - clear everything
+      logout: () => {
+        set({
+          user: null,
+          token: null,
+          isLoading: false,
+          error: null,
+          isHydrated: true,
+        })
+      },
 
-    logout: () => {
-      console.log('[AuthStore.logout] Logging out user')
-      set({ user: null, token: null, isHydrated: false })
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('user')
-    },
-
-    setUser: (user) => set({ user }),
-    setToken: (token) => {
-      console.log('[AuthStore.setToken] Setting token:', !!token)
-      set({ token, isHydrated: !!token })
-    },
-  }
-})
+      clearError: () => set({ error: null }),
+      setUser: (user) => set({ user }),
+      setToken: (token) => set({ token }),
+    }),
+    {
+      name: 'auth-store',
+      partialize: (state) => ({
+        user: state.user,
+        token: state.token,
+      }),
+      // ✅ FIX: Properly set hydrated flag after localStorage restore
+      onRehydrateStorage: () => {
+        return (state, error) => {
+          if (state) {
+            state.isHydrated = true
+          }
+        }
+      },
+    }
+  )
+)

@@ -14,7 +14,7 @@ _SYSTEM_PROMPT = (
 async def ask_groq(question: str) -> str:
     try:
         response = await _client.chat.completions.create(
-            model="llama3-8b-8192",
+            model=settings.groq_model,
             messages=[
                 {"role": "system", "content": _SYSTEM_PROMPT},
                 {"role": "user", "content": question},

@@ -1,7 +1,8 @@
-import React from 'react'
-import { Menu, Bell, Search, Zap } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { Menu, Bell, Search, Zap, LogOut, User, Settings } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useAIStore } from '@/store/aiStore'
+import { Link, useNavigate } from 'react-router-dom'
 
 interface TopbarProps {
   title?: string;
@@ -11,8 +12,41 @@ interface TopbarProps {
 export const Topbar: React.FC<TopbarProps> = ({ title = 'Dashboard', onToggleSidebar }) => {
   const user = useAuthStore((state) => state.user)
   const insights = useAIStore((state) => state.insights)
+  const logout = useAuthStore((state) => state.logout)
+  const navigate = useNavigate()
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   const hasLowStock = insights?.low_stock_items && insights.low_stock_items.length > 0
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false)
+      }
+    }
+
+    if (isProfileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isProfileMenuOpen])
+
+  const handleLogout = () => {
+    logout()
+    window.location.href = '/login'
+  }
+
+  const handleProfileClick = () => {
+    navigate('/profile')
+    setIsProfileMenuOpen(false)
+  }
+
+  const handleSettingsClick = () => {
+    navigate('/settings')
+    setIsProfileMenuOpen(false)
+  }
 
   return (
     <div
@@ -94,17 +128,82 @@ export const Topbar: React.FC<TopbarProps> = ({ title = 'Dashboard', onToggleSid
             )}
           </button>
 
-          {/* User avatar */}
+          {/* User avatar with dropdown */}
           {user && (
-            <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center font-heading font-bold text-sm cursor-pointer hover:scale-105 transition-transform text-dark"
-              style={{
-                background: 'linear-gradient(135deg, #FF9500 0%, #BD5FFF 100%)',
-                boxShadow: '0 0 12px rgba(255, 149, 0, 0.3)',
-              }}
-              title={user.full_name}
-            >
-              {user.full_name?.[0]?.toUpperCase()}
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                className="flex items-center justify-center w-10 h-10 rounded-xl hover:scale-105 transition-transform overflow-hidden border border-white/10"
+                style={{
+                  background: user.photo ? 'none' : 'linear-gradient(135deg, #FF9500 0%, #BD5FFF 100%)',
+                  boxShadow: '0 0 12px rgba(255, 149, 0, 0.3)',
+                }}
+                title={user.full_name}
+              >
+                {user.photo ? (
+                  <img src={user.photo} alt={user.full_name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="font-bold text-sm text-white">{user.full_name?.[0]?.toUpperCase()}</span>
+                )}
+              </button>
+
+              {/* Dropdown Menu */}
+              {isProfileMenuOpen && (
+                <div
+                  className="absolute top-full right-0 mt-2 w-56 rounded-xl border border-white/10 shadow-2xl z-50 animate-in fade-in"
+                  style={{
+                    background: 'rgba(13, 13, 13, 0.95)',
+                    backdropFilter: 'blur(20px)',
+                  }}
+                >
+                  {/* User Info */}
+                  <div className="p-4 border-b border-white/10">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-bold overflow-hidden"
+                        style={{
+                          background: user.photo ? 'none' : 'linear-gradient(135deg, #FF9500 0%, #BD5FFF 100%)',
+                        }}
+                      >
+                        {user.photo ? (
+                          <img src={user.photo} alt={user.full_name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-white">{user.full_name?.[0]?.toUpperCase()}</span>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">{user.full_name}</p>
+                        <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Menu Items */}
+                  <div className="p-2 space-y-1">
+                    <button
+                      onClick={handleProfileClick}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all"
+                    >
+                      <User className="w-4 h-4" />
+                      <span className="text-sm">My Profile</span>
+                    </button>
+                    <button
+                      onClick={handleSettingsClick}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all"
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span className="text-sm">Settings</span>
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span className="text-sm">Logout</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

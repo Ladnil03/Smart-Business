@@ -6,22 +6,31 @@ interface ProductStore {
   products: Product[]
   isLoading: boolean
   error: string | null
-  fetchProducts: () => Promise<void>
+  lastFetched: number | null
+  fetchProducts: (force?: boolean) => Promise<void>
   createProduct: (data: Omit<Product, 'product_id' | 'owner_id' | 'created_at' | 'updated_at'>) => Promise<void>
   deleteProduct: (productId: string) => Promise<void>
   updateProduct: (productId: string, data: Partial<Product>) => Promise<void>
 }
 
-export const useProductStore = create<ProductStore>((set) => ({
+const CACHE_DURATION = 30000 // 30 seconds
+
+export const useProductStore = create<ProductStore>((set, get) => ({
   products: [],
   isLoading: false,
   error: null,
+  lastFetched: null,
 
-  fetchProducts: async () => {
+  fetchProducts: async (force = false) => {
+    const { lastFetched } = get()
+    if (!force && lastFetched && Date.now() - lastFetched < CACHE_DURATION) {
+      return // Skip if cache is fresh
+    }
+    
     set({ isLoading: true, error: null })
     try {
       const response = await api.get('/products')
-      set({ products: response.data.data })
+      set({ products: response.data.data, lastFetched: Date.now() })
     } catch (error: any) {
       set({ error: error.response?.data?.detail || 'Failed to fetch products' })
     } finally {

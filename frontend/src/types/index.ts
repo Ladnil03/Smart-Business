@@ -4,6 +4,8 @@ export interface User {
   full_name: string
   shop_name: string
   phone?: string
+  photo?: string
+  created_at?: string
 }
 
 export interface AuthResponse {
@@ -84,7 +86,7 @@ export interface BillItem {
 export interface AIInsights {
   total_pending_udhaar: number
   low_stock_items: { name: string; sku: string; stock: number }[]
-  top_customers: Customer[]
+  top_3_customers: { name: string; phone: string; total_udhaar: number }[]
   top_products: Product[]
   monthly_revenue: number
 }

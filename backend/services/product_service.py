@@ -5,15 +5,11 @@ from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from backend.schemas.product import ProductCreate, ProductUpdate
+from backend.utils.serializers import serialize_doc
 
 
 def _serialize(doc: dict) -> dict:
-    doc["product_id"] = str(doc.pop("_id"))
-    if "created_at" in doc and isinstance(doc["created_at"], datetime):
-        doc["created_at"] = doc["created_at"].isoformat()
-    if "updated_at" in doc and isinstance(doc["updated_at"], datetime):
-        doc["updated_at"] = doc["updated_at"].isoformat()
-    return doc
+    return serialize_doc(doc, id_alias="product_id")
 
 
 def _add_low_stock_flag(doc: dict) -> dict:

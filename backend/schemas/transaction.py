@@ -6,4 +6,4 @@ class TransactionCreate(BaseModel):
     customer_id: str
     type: Literal["credit", "payment"]
     amount: float = Field(gt=0, description="Must be positive")
-    note: Optional[str] = None
+    note: Optional[str] = Field(None, max_length=500)

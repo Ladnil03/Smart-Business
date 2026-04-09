@@ -1,11 +1,16 @@
 import React, { useEffect, useState } from 'react'
-import { MainLayout } from '@/components/layout/MainLayout'
 import { Modal } from '@/components/ui/Modal'
 import { LoadingSpinner } from '@/components/ui/Loading'
 import { useProductStore } from '@/store/productStore'
 import { Plus, Search, Edit2, Trash2, Package, AlertCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
+/**
+ * ✅ PRODUCTS PAGE
+ * 
+ * No auth checks here - ProtectedLayout handles it
+ * Just render products and handle CRUD
+ */
 export const ProductsPage: React.FC = () => {
   const products = useProductStore((state) => state.products)
   const isLoading = useProductStore((state) => state.isLoading)
@@ -17,6 +22,10 @@ export const ProductsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [editingProduct, setEditingProduct] = useState<any>(null)
   
+  useEffect(() => {
+    useProductStore.getState().fetchProducts()
+  }, [])
+  
   const [formData, setFormData] = useState({
     name: '',
     sku: '',
@@ -26,10 +35,6 @@ export const ProductsPage: React.FC = () => {
     category: '',
     low_stock_threshold: 5,
   })
-
-  useEffect(() => {
-    useProductStore.getState().fetchProducts()
-  }, [])
 
   const filteredProducts = products.filter(
     (product) =>
@@ -73,11 +78,9 @@ export const ProductsPage: React.FC = () => {
   }
 
   return (
-    <MainLayout title="Inventory">
-      <div className="p-4 md:p-8 w-full max-w-7xl mx-auto space-y-6">
-        
-        {/* Header Actions */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="p-4 md:p-8 w-full max-w-7xl mx-auto space-y-6">
+      {/* Header Actions */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="relative w-full md:w-96 group">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-on-surface-variant group-focus-within:text-neon-purple transition-colors" />
@@ -103,8 +106,8 @@ export const ProductsPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Data Container */}
-        <div className="rounded-3xl overflow-hidden relative" style={{
+      {/* Data Container */}
+      <div className="rounded-3xl overflow-hidden relative" style={{
           background: 'rgba(26, 26, 26, 0.5)',
           backdropFilter: 'blur(30px)',
           border: '1px solid rgba(255, 255, 255, 0.05)',
@@ -190,7 +193,7 @@ export const ProductsPage: React.FC = () => {
               </table>
             </div>
           )}
-        </div>
+
       </div>
 
       {/* Product Modal */}
@@ -294,6 +297,6 @@ export const ProductsPage: React.FC = () => {
           </div>
         </form>
       </Modal>
-    </MainLayout>
+    </div>
   )
 }

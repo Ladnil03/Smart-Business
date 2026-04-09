@@ -5,13 +5,11 @@ from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from backend.schemas.bill import BillCreate
+from backend.utils.serializers import serialize_doc
 
 
 def _serialize(doc: dict) -> dict:
-    doc["_id"] = str(doc["_id"])
-    if "created_at" in doc and isinstance(doc["created_at"], datetime):
-        doc["created_at"] = doc["created_at"].isoformat()
-    return doc
+    return serialize_doc(doc)
 
 
 async def create_bill(
@@ -36,23 +34,35 @@ async def create_bill(
                 f"Available: {product['stock']}, Requested: {item.qty}"
             )
 
-        line_total = product["price"] * item.qty
+        line_total = product["mrp"] * item.qty
         total += line_total
         resolved_items.append(
             {
                 "product_id": item.product_id,
                 "name": product["name"],
                 "qty": item.qty,
-                "price": product["price"],
+                "price": product["mrp"],
             }
         )
 
-    # ── Phase 2: deduct stock atomically per product ──────────────────────────
+    # ── Phase 2: deduct stock with concurrency check ──────────────────────────
     for item in payload.items:
-        await db.products.update_one(
-            {"_id": ObjectId(item.product_id)},
+        result = await db.products.update_one(
+            {
+                "_id": ObjectId(item.product_id),
+                "stock": {"$gte": item.qty}  # Only update if enough stock remains
+            },
             {"$inc": {"stock": -item.qty}},
         )
+        if result.matched_count == 0:
+            # Stock unavailable — rollback previous deductions
+            for rolled in resolved_items:
+                if rolled["product_id"] != item.product_id:
+                    await db.products.update_one(
+                        {"_id": ObjectId(rolled["product_id"])},
+                        {"$inc": {"stock": rolled["qty"]}}
+                    )
+            return f"Concurrent stock conflict for product '{item.product_id}'. Please try again."
 
     # ── Phase 3: persist bill ─────────────────────────────────────────────────
     bill_doc: dict[str, Any] = {
@@ -84,7 +94,7 @@ async def create_bill(
     return _serialize(bill_doc)
 
 
-async def list_bills(owner_id: str, db: AsyncIOMotorDatabase) -> list[dict]:
-    cursor = db.bills.find({"owner_id": owner_id}).sort("created_at", -1)
-    docs = await cursor.to_list(length=None)
+async def list_bills(owner_id: str, db: AsyncIOMotorDatabase, skip: int = 0, limit: int = 50) -> list[dict]:
+    cursor = db.bills.find({"owner_id": owner_id}).sort("created_at", -1).skip(skip).limit(limit)
+    docs = await cursor.to_list(length=limit)
     return [_serialize(d) for d in docs]

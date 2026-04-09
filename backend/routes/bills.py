@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Query
 
 from backend.schemas.bill import BillCreate
 from backend.services import bill_service
@@ -18,6 +18,12 @@ async def create_bill(
 
 
 @router.get("", status_code=status.HTTP_200_OK)
-async def get_bills(user: CurrentUser, db: Database) -> dict:
-    data = await bill_service.list_bills(user["user_id"], db)
+async def get_bills(
+    user: CurrentUser,
+    db: Database,
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=200)
+) -> dict:
+    skip = (page - 1) * limit
+    data = await bill_service.list_bills(user["user_id"], db, skip, limit)
     return {"success": True, "message": "Bills fetched.", "data": data}

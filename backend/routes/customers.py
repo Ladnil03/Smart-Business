@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Query
 
 from backend.schemas.customer import CustomerCreate, CustomerUpdate
 from backend.services import customer_service
@@ -16,8 +16,14 @@ async def create_customer(
 
 
 @router.get("", status_code=status.HTTP_200_OK)
-async def get_customers(user: CurrentUser, db: Database) -> dict:
-    data = await customer_service.list_customers(user["user_id"], db)
+async def get_customers(
+    user: CurrentUser, 
+    db: Database,
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=200)
+) -> dict:
+    skip = (page - 1) * limit
+    data = await customer_service.list_customers(user["user_id"], db, skip, limit)
     return {"success": True, "message": "Customers fetched.", "data": data}
 
 

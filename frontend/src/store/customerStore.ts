@@ -6,22 +6,31 @@ interface CustomerStore {
   customers: Customer[]
   isLoading: boolean
   error: string | null
-  fetchCustomers: () => Promise<void>
+  lastFetched: number | null
+  fetchCustomers: (force?: boolean) => Promise<void>
   createCustomer: (data: Omit<Customer, 'customer_id' | 'owner_id' | 'total_udhaar' | 'transactions_count' | 'created_at' | 'updated_at'>) => Promise<void>
   updateCustomer: (customerId: string, data: Partial<Customer>) => Promise<void>
   deleteCustomer: (customerId: string) => Promise<void>
 }
 
-export const useCustomerStore = create<CustomerStore>((set) => ({
+const CACHE_DURATION = 30000 // 30 seconds
+
+export const useCustomerStore = create<CustomerStore>((set, get) => ({
   customers: [],
   isLoading: false,
   error: null,
+  lastFetched: null,
 
-  fetchCustomers: async () => {
+  fetchCustomers: async (force = false) => {
+    const { lastFetched } = get()
+    if (!force && lastFetched && Date.now() - lastFetched < CACHE_DURATION) {
+      return // Skip if cache is fresh
+    }
+    
     set({ isLoading: true, error: null })
     try {
       const response = await api.get('/customers')
-      set({ customers: response.data.data })
+      set({ customers: response.data.data, lastFetched: Date.now() })
     } catch (error: any) {
       set({ error: error.response?.data?.detail || 'Failed to fetch customers' })
     } finally {

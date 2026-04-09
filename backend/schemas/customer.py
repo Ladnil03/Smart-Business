@@ -1,16 +1,16 @@
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, EmailStr
 
 
 class CustomerCreate(BaseModel):
-    name: str
-    phone: str
-    email: Optional[str] = None
-    address: Optional[str] = None
+    name: str = Field(min_length=1, max_length=100)
+    phone: str = Field(min_length=7, max_length=20)
+    email: Optional[EmailStr] = None
+    address: Optional[str] = Field(None, max_length=500)
 
 
 class CustomerUpdate(BaseModel):
-    name: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    address: Optional[str] = None
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    phone: Optional[str] = Field(None, min_length=7, max_length=20)
+    email: Optional[EmailStr] = None
+    address: Optional[str] = Field(None, max_length=500)

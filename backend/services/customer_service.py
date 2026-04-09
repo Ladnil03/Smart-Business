@@ -5,16 +5,11 @@ from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from backend.schemas.customer import CustomerCreate, CustomerUpdate
+from backend.utils.serializers import serialize_doc
 
 
 def _serialize(doc: dict) -> dict:
-    if doc:
-        doc["customer_id"] = str(doc.pop("_id"))
-        if "created_at" in doc and isinstance(doc["created_at"], datetime):
-            doc["created_at"] = doc["created_at"].isoformat()
-        if "updated_at" in doc and isinstance(doc["updated_at"], datetime):
-            doc["updated_at"] = doc["updated_at"].isoformat()
-    return doc
+    return serialize_doc(doc, id_alias="customer_id")
 
 
 async def create_customer(
@@ -36,9 +31,9 @@ async def create_customer(
     return _serialize(doc)
 
 
-async def list_customers(owner_id: str, db: AsyncIOMotorDatabase) -> list[dict]:
-    cursor = db.customers.find({"owner_id": owner_id})
-    docs = await cursor.to_list(length=None)
+async def list_customers(owner_id: str, db: AsyncIOMotorDatabase, skip: int = 0, limit: int = 50) -> list[dict]:
+    cursor = db.customers.find({"owner_id": owner_id}).skip(skip).limit(limit)
+    docs = await cursor.to_list(length=limit)
     return [_serialize(d) for d in docs]
 
 

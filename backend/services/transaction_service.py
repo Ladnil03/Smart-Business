@@ -5,13 +5,11 @@ from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from backend.schemas.transaction import TransactionCreate
+from backend.utils.serializers import serialize_doc
 
 
 def _serialize(doc: dict) -> dict:
-    doc["_id"] = str(doc["_id"])
-    if "created_at" in doc and isinstance(doc["created_at"], datetime):
-        doc["created_at"] = doc["created_at"].isoformat()
-    return doc
+    return serialize_doc(doc)
 
 
 async def create_transaction(
@@ -42,7 +40,12 @@ async def create_transaction(
     delta = payload.amount if payload.type == "credit" else -payload.amount
     await db.customers.update_one(
         {"_id": cust_oid},
-        {"$inc": {"total_udhaar": delta}},
+        {
+            "$inc": {
+                "total_udhaar": delta,
+                "transactions_count": 1
+            }
+        },
     )
 
     return _serialize(doc)
