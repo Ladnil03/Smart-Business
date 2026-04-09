@@ -38,7 +38,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { label: 'Customers', icon: Users, path: '/customers' },
     { label: 'Products', icon: Package, path: '/products' },
     { label: 'Bills', icon: FileText, path: '/bills' },
-    { label: 'AI Assistant', icon: Zap, path: '/ai' },
+    { label: 'AI Assistant', icon: Zap, path: '/ai' }
   ]
 
   return (

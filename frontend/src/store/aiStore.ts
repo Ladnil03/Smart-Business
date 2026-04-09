@@ -1,17 +1,20 @@
 import { create } from 'zustand'
-import { AIInsights } from '@/types'
+import { AIInsights, MonthlyStats } from '@/types'
 import api from '@/lib/api'
 
 interface AIStore {
   insights: AIInsights | null
+  monthlyStats: MonthlyStats | null
   isLoading: boolean
   error: string | null
   fetchInsights: () => Promise<void>
+  fetchMonthlyStats: () => Promise<void>
   askQuestion: (question: string) => Promise<string>
 }
 
 export const useAIStore = create<AIStore>((set) => ({
   insights: null,
+  monthlyStats: null,
   isLoading: false,
   error: null,
 
@@ -22,6 +25,18 @@ export const useAIStore = create<AIStore>((set) => ({
       set({ insights: response.data.data })
     } catch (error: any) {
       set({ error: error.response?.data?.detail || 'Failed to fetch insights' })
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+
+  fetchMonthlyStats: async () => {
+    set({ isLoading: true, error: null })
+    try {
+      const response = await api.get('/ai/monthly-stats')
+      set({ monthlyStats: response.data.data })
+    } catch (error: any) {
+      set({ error: error.response?.data?.detail || 'Failed to fetch monthly stats' })
     } finally {
       set({ isLoading: false })
     }

@@ -44,18 +44,27 @@ export interface Product {
 }
 
 export interface Transaction {
-  transaction_id: string
+  _id: string
   customer_id: string
   owner_id: string
-  product_id: string
-  quantity: number
-  unit_price: number
-  total_amount: number
-  transaction_type: 'SALE' | 'RETURN' | 'PAYMENT'
-  payment_method?: string
-  notes?: string
+  type: 'credit' | 'payment'
+  amount: number
+  note?: string
   created_at: string
-  updated_at: string
+}
+
+export interface CreateTransactionPayload {
+  customer_id: string
+  type: 'credit' | 'payment'
+  amount: number
+  note?: string
+}
+
+export interface MonthlyStats {
+  collected_this_month: number
+  new_udhaar_this_month: number
+  net_position: number
+  month: string
 }
 
 export interface Bill {

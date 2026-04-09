@@ -1,4 +1,3 @@
-import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 
 // Pages
@@ -6,6 +5,7 @@ import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { CustomersPage } from '@/pages/CustomersPage'
+import { CustomerProfilePage } from '@/pages/CustomerProfilePage'
 import { ProductsPage } from '@/pages/ProductsPage'
 import { BillsPage } from '@/pages/BillsPage'
 import { AIPage } from '@/pages/AIPage'
@@ -36,6 +36,7 @@ function App() {
         <Route element={<ProtectedLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/customers" element={<CustomersPage />} />
+          <Route path="/customers/:id" element={<CustomerProfilePage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/bills" element={<BillsPage />} />
           <Route path="/ai" element={<AIPage />} />

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { LoadingSpinner } from '@/components/ui/Loading'
+import { ImportModal } from '@/components/ui/ImportModal'
 import { useProductStore } from '@/store/productStore'
-import { Plus, Search, Edit2, Trash2, Package, AlertCircle } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, Package, AlertCircle, Upload } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 /**
@@ -19,6 +20,7 @@ export const ProductsPage: React.FC = () => {
   const deleteProduct = useProductStore((state) => state.deleteProduct)
   
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [editingProduct, setEditingProduct] = useState<any>(null)
   
@@ -96,14 +98,25 @@ export const ProductsPage: React.FC = () => {
             <div className="absolute inset-0 rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none" style={{ boxShadow: '0 0 15px rgba(189, 95, 255, 0.2)' }}></div>
           </div>
           
-          <button
-            onClick={() => handleOpenModal()}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-neon-purple to-neon-orange text-dark font-bold rounded-2xl hover:scale-105 transition-transform duration-300 shadow-[0_0_20px_rgba(189,95,255,0.3)] group relative overflow-hidden"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-neon-teal to-neon-purple opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            <Plus className="w-5 h-5 relative z-10" />
-            <span className="relative z-10">Add Product</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleOpenModal()}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-neon-purple to-neon-orange text-dark font-bold rounded-2xl hover:scale-105 transition-transform duration-300 shadow-[0_0_20px_rgba(189,95,255,0.3)] group relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-neon-teal to-neon-purple opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <Plus className="w-5 h-5 relative z-10" />
+              <span className="relative z-10">Add Product</span>
+            </button>
+            
+            <button
+              onClick={() => setIsImportModalOpen(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-neon-purple to-neon-pink text-white font-bold rounded-2xl hover:scale-105 transition-transform duration-300 shadow-[0_0_20px_rgba(189,95,255,0.3)] group relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-neon-pink to-neon-orange opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <Upload className="w-5 h-5 relative z-10" />
+              <span className="relative z-10">Import</span>
+            </button>
+          </div>
         </div>
 
       {/* Data Container */}
@@ -297,6 +310,13 @@ export const ProductsPage: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Import Modal */}
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        type="products"
+      />
     </div>
   )
 }

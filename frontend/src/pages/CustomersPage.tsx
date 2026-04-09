@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Modal } from '@/components/ui/Modal'
 import { LoadingSpinner } from '@/components/ui/Loading'
+import { CustomerLedgerDrawer } from '@/components/CustomerLedgerDrawer'
+import { ImportModal } from '@/components/ui/ImportModal'
 import { useCustomerStore } from '@/store/customerStore'
-import { Plus, Search, Edit2, Trash2, Users } from 'lucide-react'
+import { useTransactionStore } from '@/store/transactionStore'
+import { useToastStore, ToastContainer } from '@/components/ui/Toast'
+import { Plus, Search, Edit2, Trash2, Users, CreditCard, BookOpen, MessageCircle, Upload } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import api from '@/lib/api'
 
-/**
- * ✅ CUSTOMERS PAGE
- * 
- * No auth checks here - ProtectedLayout handles it
- * Just render customers and handle CRUD
- */
 export const CustomersPage: React.FC = () => {
   const customers = useCustomerStore((state) => state.customers)
   const isLoading = useCustomerStore((state) => state.isLoading)
@@ -18,9 +18,21 @@ export const CustomersPage: React.FC = () => {
   const updateCustomer = useCustomerStore((state) => state.updateCustomer)
   const deleteCustomer = useCustomerStore((state) => state.deleteCustomer)
   
+  const { createTransaction } = useTransactionStore()
+  const toastStore = useToastStore()
+  
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [editingCustomer, setEditingCustomer] = useState<any>(null)
+  
+  const [payingCustomer, setPayingCustomer] = useState<any>(null)
+  const [paymentAmount, setPaymentAmount] = useState<number>(0)
+  const [paymentNote, setPaymentNote] = useState('')
+  const [isPaymentSubmitting, setIsPaymentSubmitting] = useState(false)
+  
+  const [ledgerCustomer, setLedgerCustomer] = useState<any>(null)
+  const [whatsappLoadingId, setWhatsappLoadingId] = useState<string | null>(null)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   
   useEffect(() => {
     useCustomerStore.getState().fetchCustomers()
@@ -71,6 +83,41 @@ export const CustomersPage: React.FC = () => {
     }
   }
 
+  const handlePaymentSubmit = async () => {
+    if (!payingCustomer || paymentAmount <= 0) return
+    
+    setIsPaymentSubmitting(true)
+    try {
+      await createTransaction({
+        customer_id: payingCustomer.customer_id,
+        type: 'payment',
+        amount: paymentAmount,
+        note: paymentNote,
+      })
+      toastStore.showToast('Payment recorded successfully', 'success')
+      setPayingCustomer(null)
+      setPaymentAmount(0)
+      setPaymentNote('')
+    } catch (err) {
+      toastStore.showToast('Failed to record payment', 'error')
+    } finally {
+      setIsPaymentSubmitting(false)
+    }
+  }
+
+  const handleWhatsappReminder = async (customer: any) => {
+    setWhatsappLoadingId(customer.customer_id)
+    try {
+      const response = await api.get(`/customers/${customer.customer_id}/whatsapp-reminder`)
+      const url = response.data.data.url
+      window.open(url, '_blank')
+    } catch (err) {
+      toastStore.showToast('Failed to generate WhatsApp message', 'error')
+    } finally {
+      setWhatsappLoadingId(null)
+    }
+  }
+
   return (
     <div className="p-4 md:p-8 w-full max-w-7xl mx-auto space-y-6">
       {/* Header Actions */}
@@ -90,14 +137,25 @@ export const CustomersPage: React.FC = () => {
           <div className="absolute inset-0 rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none" style={{ boxShadow: '0 0 15px rgba(0, 255, 209, 0.2)' }}></div>
         </div>
         
-        <button
-          onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-neon-teal to-neon-blue text-dark font-bold rounded-2xl hover:scale-105 transition-transform duration-300 shadow-[0_0_20px_rgba(0,255,209,0.3)] group relative overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-neon-blue to-neon-purple opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-          <Plus className="w-5 h-5 relative z-10" />
-          <span className="relative z-10">Add Customer</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handleOpenModal()}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-neon-teal to-neon-blue text-dark font-bold rounded-2xl hover:scale-105 transition-transform duration-300 shadow-[0_0_20px_rgba(0,255,209,0.3)] group relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-neon-blue to-neon-purple opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <Plus className="w-5 h-5 relative z-10" />
+            <span className="relative z-10">Add Customer</span>
+          </button>
+          
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-neon-purple to-neon-pink text-white font-bold rounded-2xl hover:scale-105 transition-transform duration-300 shadow-[0_0_20px_rgba(189,95,255,0.3)] group relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-neon-pink to-neon-orange opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <Upload className="w-5 h-5 relative z-10" />
+            <span className="relative z-10">Import</span>
+          </button>
+        </div>
       </div>
 
       {/* Data Container */}
@@ -143,7 +201,9 @@ export const CustomersPage: React.FC = () => {
                             {customer.name[0]?.toUpperCase() || '?'}
                           </div>
                           <div>
-                            <p className="font-bold text-white group-hover:text-neon-teal transition-colors">{customer.name}</p>
+                            <Link to={`/customers/${customer.customer_id}`} className="font-bold text-white group-hover:text-neon-teal transition-colors hover:underline">
+                              {customer.name}
+                            </Link>
                             {customer.address && <p className="text-xs text-on-surface-variant mt-0.5 max-w-[200px] truncate">{customer.address}</p>}
                           </div>
                         </div>
@@ -161,7 +221,37 @@ export const CustomersPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="p-5 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-1 transition-opacity">
+                          {customer.total_udhaar > 0 && (
+                            <>
+                              <button
+                                onClick={() => setPayingCustomer(customer)}
+                                className="p-2 rounded-lg text-neon-teal hover:bg-neon-teal/10 transition-all duration-200"
+                                title="Collect Payment"
+                              >
+                                <CreditCard className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => setLedgerCustomer(customer)}
+                                className="p-2 rounded-lg text-neon-purple hover:bg-neon-purple/10 transition-all duration-200"
+                                title="View Ledger"
+                              >
+                                <BookOpen className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleWhatsappReminder(customer)}
+                                disabled={whatsappLoadingId === customer.customer_id}
+                                className="p-2 rounded-lg text-green-400 hover:bg-green-400/10 transition-all duration-200 disabled:opacity-50"
+                                title="Send WhatsApp Reminder"
+                              >
+                                {whatsappLoadingId === customer.customer_id ? (
+                                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <MessageCircle className="w-4 h-4" />
+                                )}
+                              </button>
+                            </>
+                          )}
                           <button
                             onClick={() => handleOpenModal(customer)}
                             className="p-2 rounded-lg text-on-surface-variant hover:text-white hover:bg-surface transition-all duration-200"
@@ -256,6 +346,79 @@ export const CustomersPage: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Collect Payment Modal */}
+      <Modal
+        isOpen={payingCustomer !== null}
+        onClose={() => setPayingCustomer(null)}
+        title="Collect Payment"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-on-surface-variant mb-2">
+              Amount
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={payingCustomer?.total_udhaar || 0}
+              value={paymentAmount}
+              onChange={(e) => setPaymentAmount(Number(e.target.value))}
+              className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-on-surface-variant focus:outline-none focus:border-neon-teal"
+              placeholder="Enter amount"
+            />
+            <p className="text-xs text-on-surface-variant mt-1">
+              Outstanding: ₹{payingCustomer?.total_udhaar.toLocaleString() || 0}
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-on-surface-variant mb-2">
+              Note (Optional)
+            </label>
+            <input
+              type="text"
+              value={paymentNote}
+              onChange={(e) => setPaymentNote(e.target.value)}
+              className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-on-surface-variant focus:outline-none focus:border-neon-teal"
+              placeholder="e.g. Cash received"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={() => setPayingCustomer(null)}
+              className="flex-1 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handlePaymentSubmit}
+              disabled={isPaymentSubmitting || paymentAmount <= 0}
+              className="flex-1 px-4 py-2 rounded-lg bg-neon-teal text-black font-medium hover:bg-neon-teal/90 transition-colors disabled:opacity-50"
+            >
+              {isPaymentSubmitting ? 'Processing...' : 'Confirm'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Ledger Drawer */}
+      <CustomerLedgerDrawer
+        customer={ledgerCustomer}
+        onClose={() => setLedgerCustomer(null)}
+      />
+
+      {/* Import Modal */}
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        type="customers"
+      />
+
+      {/* Toast Container */}
+      <ToastContainer store={toastStore} />
     </div>
   )
 }

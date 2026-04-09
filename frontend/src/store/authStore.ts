@@ -50,7 +50,7 @@ interface AuthStore {
  */
 export const useAuthStore = create<AuthStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       user: null,
       token: null,
       isLoading: false,
@@ -123,7 +123,7 @@ export const useAuthStore = create<AuthStore>()(
       }),
       // ✅ FIX: Derive user from token on hydration
       onRehydrateStorage: () => {
-        return (state, error) => {
+        return (state) => {
           if (state && state.token) {
             state.user = getUserFromToken(state.token)
             state.isHydrated = true

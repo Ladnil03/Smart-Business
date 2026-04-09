@@ -56,3 +56,39 @@ async def get_insights(user: CurrentUser, db: Database) -> dict:
             "top_customers": top_3_customers,
         },
     }
+
+
+@router.get("/monthly-stats", status_code=status.HTTP_200_OK)
+async def get_monthly_stats(user: CurrentUser, db: Database) -> dict:
+    from datetime import datetime
+    
+    owner_id = user["user_id"]
+    now = datetime.utcnow()
+    month_start = datetime(now.year, now.month, 1)
+    
+    # Aggregate transactions this month by type
+    pipeline = [
+        {"$match": {
+            "owner_id": owner_id,
+            "created_at": {"$gte": month_start}
+        }},
+        {"$group": {
+            "_id": "$type",
+            "total": {"$sum": "$amount"}
+        }}
+    ]
+    results = await db.transactions.aggregate(pipeline).to_list(length=None)
+    
+    collected = next((r["total"] for r in results if r["_id"] == "payment"), 0.0)
+    new_udhaar = next((r["total"] for r in results if r["_id"] == "credit"), 0.0)
+    
+    return {
+        "success": True,
+        "message": "Monthly stats computed.",
+        "data": {
+            "collected_this_month": collected,
+            "new_udhaar_this_month": new_udhaar,
+            "net_position": collected - new_udhaar,
+            "month": now.strftime("%B %Y")
+        }
+    }

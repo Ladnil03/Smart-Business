@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Menu, Bell, Search, Zap, LogOut, User, Settings } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useAIStore } from '@/store/aiStore'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 interface TopbarProps {
   title?: string;

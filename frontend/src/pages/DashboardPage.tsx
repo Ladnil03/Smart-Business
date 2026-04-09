@@ -1,32 +1,34 @@
 import React, { useEffect, useState } from 'react'
 import { LoadingSpinner } from '@/components/ui/Loading'
+import { Modal } from '@/components/ui/Modal'
 import { useAuthStore } from '@/store/authStore'
 import { useCustomerStore } from '@/store/customerStore'
 import { useProductStore } from '@/store/productStore'
 import { useAIStore } from '@/store/aiStore'
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts'
-import { TrendingUp, Users, Package, AlertCircle, DollarSign, Store } from 'lucide-react'
+import { TrendingUp, Users, Package, AlertCircle, DollarSign, Store, Plus } from 'lucide-react'
 import { motion } from 'framer-motion'
 import api from '@/lib/api'
 
-/**
- * ✅ DASHBOARD PAGE
- * 
- * No auth checks here - ProtectedLayout handles it
- * Just fetch and display data
- */
 export const DashboardPage: React.FC = () => {
   const user = useAuthStore((state) => state.user)
   const customers = useCustomerStore((state) => state.customers)
   const products = useProductStore((state) => state.products)
+  const updateProduct = useProductStore((state) => state.updateProduct)
   const insights = useAIStore((state) => state.insights)
+  const monthlyStats = useAIStore((state) => state.monthlyStats)
   const isLoading = useAIStore((state) => state.isLoading)
   const [chartData, setChartData] = useState<any[]>([])
+
+  const [restockingProduct, setRestockingProduct] = useState<any>(null)
+  const [addUnits, setAddUnits] = useState(10)
+  const [isRestockSubmitting, setIsRestockSubmitting] = useState(false)
 
   useEffect(() => {
     useCustomerStore.getState().fetchCustomers()
     useProductStore.getState().fetchProducts()
     useAIStore.getState().fetchInsights()
+    useAIStore.getState().fetchMonthlyStats()
     
     const fetchChartData = async () => {
       try {
@@ -44,6 +46,23 @@ export const DashboardPage: React.FC = () => {
     }
     fetchChartData()
   }, [])
+
+  const handleRestockSubmit = async () => {
+    if (!restockingProduct) return
+    
+    setIsRestockSubmitting(true)
+    try {
+      const newStock = restockingProduct.stock + addUnits
+      await updateProduct(restockingProduct.product_id, { stock: newStock })
+      await useAIStore.getState().fetchInsights()
+      setRestockingProduct(null)
+      setAddUnits(10)
+    } catch (err) {
+      console.error('Restock failed:', err)
+    } finally {
+      setIsRestockSubmitting(false)
+    }
+  }
 
   const stats = [
     {
@@ -294,12 +313,25 @@ export const DashboardPage: React.FC = () => {
                             <p className="text-xs text-on-surface-variant font-mono mt-0.5">SKU: {item.sku}</p>
                           </div>
                         </div>
-                        <div className="flex flex-col items-end">
+                        <div className="flex items-center gap-3">
                           <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                             item.stock === 0 ? 'bg-neon-pink text-dark shadow-glow-sm shadow-neon-pink' : 'bg-neon-orange/20 text-neon-orange border border-neon-orange/20'
                           }`}>
                             {item.stock} left
                           </span>
+                          <button
+                            onClick={() => {
+                              // Find the product in the products array to get full details
+                              const fullProduct = products.find((p) => p.name === item.name)
+                              if (fullProduct) {
+                                setRestockingProduct(fullProduct)
+                              }
+                            }}
+                            className="p-2 rounded-lg text-neon-teal hover:bg-neon-teal/10 transition-all duration-200 opacity-0 group-hover:opacity-100"
+                            title="Restock"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
                     ))
@@ -372,7 +404,142 @@ export const DashboardPage: React.FC = () => {
             </div>
           </motion.div>
         </motion.div>
+
+        {/* Monthly Stats */}
+        <motion.div className="grid grid-cols-1 md:grid-cols-3 gap-6" variants={containerVariants}>
+          <motion.div variants={itemVariants}>
+            <div className="group relative rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1" style={{
+              background: 'rgba(26, 26, 26, 0.6)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.05)',
+            }}>
+              <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" style={{
+                background: 'linear-gradient(135deg, rgba(0,255,209,0.2) 0%, transparent 100%)'
+              }} />
+              
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-surface shadow-neon-teal">
+                    <DollarSign className="w-6 h-6 text-neon-teal" />
+                  </div>
+                  <span className="text-xs font-bold">This Month</span>
+                </div>
+                <p className="text-on-surface-variant text-sm font-medium mb-1">Collected</p>
+                <p className="text-3xl font-display font-bold text-neon-teal tracking-tight">₹{(monthlyStats?.collected_this_month || 0).toLocaleString('en-IN')}</p>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div variants={itemVariants}>
+            <div className="group relative rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1" style={{
+              background: 'rgba(26, 26, 26, 0.6)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.05)',
+            }}>
+              <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" style={{
+                background: 'linear-gradient(135deg, rgba(255,149,0,0.2) 0%, transparent 100%)'
+              }} />
+              
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-surface shadow-neon-orange">
+                    <AlertCircle className="w-6 h-6 text-neon-orange" />
+                  </div>
+                  <span className="text-xs font-bold">This Month</span>
+                </div>
+                <p className="text-on-surface-variant text-sm font-medium mb-1">New Udhaar</p>
+                <p className="text-3xl font-display font-bold text-neon-orange tracking-tight">₹{(monthlyStats?.new_udhaar_this_month || 0).toLocaleString('en-IN')}</p>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div variants={itemVariants}>
+            <div className="group relative rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1" style={{
+              background: 'rgba(26, 26, 26, 0.6)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.05)',
+            }}>
+              <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" style={{
+                background: monthlyStats && monthlyStats.net_position >= 0 
+                  ? 'linear-gradient(135deg, rgba(0,255,209,0.2) 0%, transparent 100%)'
+                  : 'linear-gradient(135deg, rgba(255,45,85,0.2) 0%, transparent 100%)'
+              }} />
+              
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-surface ${
+                    monthlyStats && monthlyStats.net_position >= 0 ? 'shadow-neon-teal' : 'shadow-neon-pink'
+                  }`}>
+                    <TrendingUp className={`w-6 h-6 ${
+                      monthlyStats && monthlyStats.net_position >= 0 ? 'text-neon-teal' : 'text-neon-pink'
+                    }`} />
+                  </div>
+                  <span className="text-xs font-bold">Net Position</span>
+                </div>
+                <p className="text-on-surface-variant text-sm font-medium mb-1">{monthlyStats?.month}</p>
+                <p className={`text-3xl font-display font-bold tracking-tight ${
+                  monthlyStats && monthlyStats.net_position >= 0 ? 'text-neon-teal' : 'text-neon-pink'
+                }`}>
+                  {monthlyStats && monthlyStats.net_position >= 0 ? '+' : ''}₹{(monthlyStats?.net_position || 0).toLocaleString('en-IN')}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
       </motion.div>
+
+      {/* Restock Modal */}
+      <Modal
+        isOpen={restockingProduct !== null}
+        onClose={() => setRestockingProduct(null)}
+        title={`Restock ${restockingProduct?.name}`}
+        size="md"
+      >
+        <div className="space-y-4">
+          <div>
+            <p className="text-sm font-medium text-on-surface-variant mb-2">
+              Current stock: <span className="text-white font-bold">{restockingProduct?.stock} units</span>
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-on-surface-variant mb-2">
+              Add units
+            </label>
+            <input
+              type="number"
+              min={1}
+              value={addUnits}
+              onChange={(e) => setAddUnits(Number(e.target.value))}
+              className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-on-surface-variant focus:outline-none focus:border-neon-teal"
+              placeholder="Enter units to add"
+            />
+          </div>
+
+          <div className="pt-4 border-t border-white/10">
+            <p className="text-sm text-on-surface-variant mb-2">New stock:</p>
+            <p className="text-2xl font-bold text-neon-teal">
+              {(restockingProduct?.stock || 0) + addUnits} units
+            </p>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={() => setRestockingProduct(null)}
+              className="flex-1 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleRestockSubmit}
+              disabled={isRestockSubmitting}
+              className="flex-1 px-4 py-2 rounded-lg bg-neon-teal text-black font-medium hover:bg-neon-teal/90 transition-colors disabled:opacity-50"
+            >
+              {isRestockSubmitting ? 'Updating...' : 'Update Stock'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

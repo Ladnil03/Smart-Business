@@ -97,3 +97,12 @@ async def list_bills(owner_id: str, db: AsyncIOMotorDatabase, skip: int = 0, lim
     cursor = db.bills.find({"owner_id": owner_id}).sort("created_at", -1).skip(skip).limit(limit)
     docs = await cursor.to_list(length=limit)
     return [_serialize(d) for d in docs]
+
+
+async def get_bill_by_id(bill_id: str, owner_id: str, db: AsyncIOMotorDatabase) -> dict[str, Any] | None:
+    try:
+        oid = ObjectId(bill_id)
+    except Exception:
+        return None
+    doc = await db.bills.find_one({"_id": oid, "owner_id": owner_id})
+    return _serialize(doc) if doc else None

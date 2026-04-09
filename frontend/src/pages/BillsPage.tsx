@@ -1,33 +1,30 @@
 import React, { useEffect, useState } from 'react'
 import { LoadingSpinner } from '@/components/ui/Loading'
+import { ImportModal } from '@/components/ui/ImportModal'
 import { useCustomerStore } from '@/store/customerStore'
 import { useProductStore } from '@/store/productStore'
+import { useAuthStore } from '@/store/authStore'
 import { Modal } from '@/components/ui/Modal'
-import { Plus, Search, FileText, CheckCircle, Clock, Trash2 } from 'lucide-react'
+import { Plus, Search, FileText, CheckCircle, Clock, Download, Trash2, Upload } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '@/lib/api'
 
-/**
- * ✅ BILLS PAGE
- * 
- * No auth checks here - ProtectedLayout handles it
- * Just render bills and handle CRUD
- */
 export const BillsPage: React.FC = () => {
   const customers = useCustomerStore((state) => state.customers)
   const products = useProductStore((state) => state.products)
-  const fetchCustomers = useCustomerStore((state) => state.fetchCustomers)
-  const fetchProducts = useProductStore((state) => state.fetchProducts)
+  const token = useAuthStore((state) => state.token)
   
   const [bills, setBills] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   
   // New Bill State
   const [selectedCustomerId, setSelectedCustomerId] = useState('')
   const [billItems, setBillItems] = useState([{ product_id: '', quantity: 1, price: 0 }])
   const [amountPaid, setAmountPaid] = useState(0)
+  const [downloadingBillId, setDownloadingBillId] = useState<string | null>(null)
 
   useEffect(() => {
     useCustomerStore.getState().fetchCustomers()
@@ -53,6 +50,19 @@ export const BillsPage: React.FC = () => {
   const handleRemoveItem = (index: number) => {
     const newItems = billItems.filter((_, i) => i !== index)
     setBillItems(newItems)
+  }
+
+  const handleDownloadPDF = async (billId: string) => {
+    setDownloadingBillId(billId)
+    try {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
+      const pdfUrl = `${apiBaseUrl}/bills/${billId}/pdf?token=${token}`
+      window.open(pdfUrl, '_blank')
+    } catch (err) {
+      console.error('Failed to download PDF:', err)
+    } finally {
+      setDownloadingBillId(null)
+    }
   }
 
   const updateItem = (index: number, field: string, value: any) => {
@@ -129,14 +139,25 @@ export const BillsPage: React.FC = () => {
             <div className="absolute inset-0 rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none" style={{ boxShadow: '0 0 15px rgba(0, 217, 255, 0.2)' }}></div>
           </div>
           
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-neon-blue to-neon-purple text-dark font-bold rounded-2xl hover:scale-105 transition-transform duration-300 shadow-[0_0_20px_rgba(0,217,255,0.3)] group relative overflow-hidden"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-neon-teal to-neon-blue opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            <Plus className="w-5 h-5 relative z-10" />
-            <span className="relative z-10">Create Bill</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-neon-blue to-neon-purple text-dark font-bold rounded-2xl hover:scale-105 transition-transform duration-300 shadow-[0_0_20px_rgba(0,217,255,0.3)] group relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-neon-teal to-neon-blue opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <Plus className="w-5 h-5 relative z-10" />
+              <span className="relative z-10">Create Bill</span>
+            </button>
+            
+            <button
+              onClick={() => setIsImportModalOpen(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-neon-purple to-neon-pink text-white font-bold rounded-2xl hover:scale-105 transition-transform duration-300 shadow-[0_0_20px_rgba(189,95,255,0.3)] group relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-neon-pink to-neon-orange opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <Upload className="w-5 h-5 relative z-10" />
+              <span className="relative z-10">Import</span>
+            </button>
+          </div>
         </div>
 
         {/* Data Container */}
@@ -164,6 +185,7 @@ export const BillsPage: React.FC = () => {
                     <th className="p-5 font-semibold text-on-surface-variant text-sm">Customer</th>
                     <th className="p-5 font-semibold text-on-surface-variant text-sm text-center">Status</th>
                     <th className="p-5 font-semibold text-on-surface-variant text-sm text-right">Total Amount</th>
+                    <th className="p-5 font-semibold text-on-surface-variant text-sm text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -198,11 +220,25 @@ export const BillsPage: React.FC = () => {
                               : 'bg-neon-pink/10 text-neon-pink border border-neon-pink/20'
                           }`}>
                             {bill.status === 'paid' ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                            {bill.status.charAt(0).toUpperCase() + bill.status.slice(1)}
+                            {(bill.status || 'pending').charAt(0).toUpperCase() + (bill.status || 'pending').slice(1)}
                           </span>
                         </td>
                         <td className="p-5 text-right font-display text-white font-bold">
                           ₹{bill.total_amount.toLocaleString('en-IN')}
+                        </td>
+                        <td className="p-5 text-right">
+                          <button
+                            onClick={() => handleDownloadPDF(bill._id)}
+                            disabled={downloadingBillId === bill._id}
+                            className="p-2 rounded-lg text-neon-blue hover:bg-neon-blue/10 transition-all duration-200 disabled:opacity-50"
+                            title="Download PDF"
+                          >
+                            {downloadingBillId === bill._id ? (
+                              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <Download className="w-4 h-4" />
+                            )}
+                          </button>
                         </td>
                       </motion.tr>
                     ))}
@@ -346,6 +382,13 @@ export const BillsPage: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Import Modal */}
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        type="bills"
+      />
     </div>
   )
 }

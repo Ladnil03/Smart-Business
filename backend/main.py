@@ -8,6 +8,7 @@ from slowapi import _rate_limit_exceeded_handler
 
 from backend.database.connection import connect_db, close_db
 from backend.routes import auth, customers, transactions, products, bills, ai
+from backend.routes.imports import router as import_router
 from backend.utils.dependencies import CurrentUser
 from backend.config import settings
 from backend.middleware.rate_limit import limiter
@@ -45,6 +46,7 @@ app.include_router(transactions.router, prefix="/transactions", tags=["Transacti
 app.include_router(products.router,     prefix="/products",     tags=["Products"])
 app.include_router(bills.router,        prefix="/bills",        tags=["Bills"])
 app.include_router(ai.router,           prefix="/ai",           tags=["AI"])
+app.include_router(import_router,       prefix="/import",       tags=["Import"])
 
 
 @app.get("/", tags=["Health"])

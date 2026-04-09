@@ -1,8 +1,10 @@
 from fastapi import APIRouter, HTTPException, status, Query
+from bson import ObjectId
 
 from backend.schemas.customer import CustomerCreate, CustomerUpdate
 from backend.services import customer_service
 from backend.utils.dependencies import CurrentUser, Database
+from backend.utils.whatsapp import generate_udhaar_reminder
 
 router = APIRouter()
 
@@ -25,6 +27,76 @@ async def get_customers(
     skip = (page - 1) * limit
     data = await customer_service.list_customers(user["user_id"], db, skip, limit)
     return {"success": True, "message": "Customers fetched.", "data": data}
+
+
+@router.get("/{customer_id}", status_code=status.HTTP_200_OK)
+async def get_customer(
+    customer_id: str, user: CurrentUser, db: Database
+) -> dict:
+    customer = await customer_service.get_customer_by_id(customer_id, user["user_id"], db)
+    if customer is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found")
+    
+    # Fetch recent transactions for the preview
+    try:
+        cust_oid = ObjectId(customer_id)
+        transactions = await db.transactions.find(
+            {"customer_id": str(cust_oid), "owner_id": user["user_id"]}
+        ).sort("created_at", -1).limit(5).to_list(length=5)
+        recent_transactions = [
+            {
+                "_id": str(t["_id"]),
+                "customer_id": t.get("customer_id"),
+                "owner_id": t.get("owner_id"),
+                "type": t.get("type"),
+                "amount": t.get("amount"),
+                "note": t.get("note"),
+                "created_at": t.get("created_at").isoformat() if t.get("created_at") else None,
+            }
+            for t in transactions
+        ]
+    except Exception:
+        recent_transactions = []
+    
+    return {
+        "success": True,
+        "message": "Customer fetched.",
+        "data": {"customer": customer, "recent_transactions": recent_transactions}
+    }
+
+
+@router.get("/{customer_id}/whatsapp-reminder", status_code=status.HTTP_200_OK)
+async def get_whatsapp_reminder(
+    customer_id: str, user: CurrentUser, db: Database
+) -> dict:
+    customer = await customer_service.get_customer_by_id(customer_id, user["user_id"], db)
+    if customer is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found")
+    
+    if customer.get("total_udhaar", 0) == 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No outstanding udhaar")
+    
+    # Fetch shop owner details
+    try:
+        owner_oid = ObjectId(user["user_id"])
+        owner = await db.users.find_one({"_id": owner_oid})
+        shop_name = owner.get("shop_name", "Our Store") if owner else "Our Store"
+    except Exception:
+        shop_name = "Our Store"
+    
+    # Generate WhatsApp URL
+    url = generate_udhaar_reminder(
+        name=customer.get("name", "Customer"),
+        phone=customer.get("phone"),
+        amount=customer.get("total_udhaar", 0),
+        shop_name=shop_name
+    )
+    
+    return {
+        "success": True,
+        "message": "Link generated.",
+        "data": {"url": url}
+    }
 
 
 @router.put("/{customer_id}", status_code=status.HTTP_200_OK)

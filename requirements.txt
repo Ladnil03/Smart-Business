@@ -11,3 +11,8 @@ python-dotenv
 python-multipart
 email-validator
 slowapi
+reportlab
+openpyxl
+pandas
+PyPDF2
+python-magic-bin
