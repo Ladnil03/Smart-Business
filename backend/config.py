@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_model: str = "llama3-8b-8192"
     shop_name: str = "MyShop"
-    cors_origins: str = '["http://localhost:5173","http://localhost:3000"]'
+    cors_origins: str = '["http://localhost:5173","http://localhost:3000","https://smart-business-526t.vercel.app"]'
     environment: str = "development"
 
     model_config = SettingsConfigDict(
