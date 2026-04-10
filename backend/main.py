@@ -1,5 +1,14 @@
+import sys
+import os
+from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
+
+# Handle imports from both project root and backend directory
+current_dir = Path(__file__).parent
+project_root = current_dir.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
