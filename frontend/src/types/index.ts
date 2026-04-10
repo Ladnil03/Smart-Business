@@ -68,14 +68,17 @@ export interface MonthlyStats {
 }
 
 export interface Bill {
+  _id?: string
   bill_id: string
   customer_id: string
   owner_id: string
   items: BillItem[]
   subtotal: number
   tax?: number
+  total?: number
   total_amount: number
-  payment_status: 'PENDING' | 'PARTIAL' | 'PAID'
+  payment_status?: 'PENDING' | 'PARTIAL' | 'PAID'
+  paid?: boolean
   amount_paid?: number
   udhaar_amount?: number
   bill_date: string
@@ -95,7 +98,7 @@ export interface BillItem {
 export interface AIInsights {
   total_pending_udhaar: number
   low_stock_items: { name: string; sku: string; stock: number }[]
-  top_3_customers: { name: string; phone: string; total_udhaar: number }[]
+  top_customers: { name: string; phone: string; total_udhaar: number }[]
   top_products: Product[]
   monthly_revenue: number
 }

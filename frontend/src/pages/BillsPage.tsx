@@ -115,11 +115,12 @@ export const BillsPage: React.FC = () => {
     }
   }
 
-  const filteredBills = bills.filter(
-    (b) =>
-      b._id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (b.customer_name && b.customer_name.toLowerCase().includes(searchQuery.toLowerCase()))
-  )
+  const filteredBills = bills.filter((b) => {
+    const id = (b._id || '').toString().toLowerCase()
+    const name = (b.customer_name || '').toLowerCase()
+    const q = searchQuery.toLowerCase()
+    return id.includes(q) || name.includes(q)
+  })
 
   return (
     <div className="p-4 md:p-8 w-full max-w-7xl mx-auto space-y-6">
@@ -213,18 +214,16 @@ export const BillsPage: React.FC = () => {
                         </td>
                         <td className="p-5 text-center">
                           <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
-                            bill.status === 'paid'
+                            bill.paid === true
                               ? 'bg-neon-teal/10 text-neon-teal border border-neon-teal/20'
-                              : bill.status === 'partial'
-                              ? 'bg-neon-orange/10 text-neon-orange border border-neon-orange/20'
                               : 'bg-neon-pink/10 text-neon-pink border border-neon-pink/20'
                           }`}>
-                            {bill.status === 'paid' ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                            {(bill.status || 'pending').charAt(0).toUpperCase() + (bill.status || 'pending').slice(1)}
+                            {bill.paid ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                            {bill.paid ? 'Paid' : 'Unpaid'}
                           </span>
                         </td>
                         <td className="p-5 text-right font-display text-white font-bold">
-                          ₹{bill.total_amount.toLocaleString('en-IN')}
+                          ₹{(bill.total ?? bill.total_amount ?? 0).toLocaleString('en-IN')}
                         </td>
                         <td className="p-5 text-right">
                           <button

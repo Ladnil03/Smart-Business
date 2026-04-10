@@ -19,7 +19,7 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
   fetchTransactions: async (customerId: string) => {
     set({ isLoading: true, error: null })
     try {
-      const response = await api.get(`/customers/${customerId}/transactions`)
+      const response = await api.get(`/transactions/customers/${customerId}/transactions`)
       set({ transactions: response.data.data })
     } catch (error: any) {
       set({ error: error.response?.data?.detail || 'Failed to fetch transactions' })

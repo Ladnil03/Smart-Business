@@ -47,6 +47,10 @@ export const ProfilePage: React.FC = () => {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      if (file.size > 200 * 1024) {
+        setError('Photo must be under 200KB. Please resize and try again.')
+        return
+      }
       const reader = new FileReader()
       reader.onload = (event) => {
         const base64 = event.target?.result as string

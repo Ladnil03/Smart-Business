@@ -96,8 +96,9 @@ export const Topbar: React.FC<TopbarProps> = ({ title = 'Dashboard', onToggleSid
             <Search className="w-4 h-4 text-on-surface-variant group-focus-within:text-neon-orange transition-colors" />
             <input
               type="text"
-              placeholder="Search anything..."
-              className="bg-transparent border-none outline-none text-sm w-40 text-on-surface placeholder:text-on-surface-variant/50 focus:ring-0 !p-0"
+              placeholder="Search coming soon..."
+              readOnly
+              className="bg-transparent border-none outline-none text-sm w-40 text-on-surface-variant/40 cursor-not-allowed"
             />
           </div>
 

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { Modal } from '@/components/ui/Modal'
 import { ImportUploadArea } from '@/components/ui/ImportUploadArea'
 import { useImportStore } from '@/store/importStore'
-import { useToastStore } from '@/components/ui/Toast'
+import { useToastStore } from '@/store/toastStore'
 import { useCustomerStore } from '@/store/customerStore'
 import { useProductStore } from '@/store/productStore'
 
@@ -18,7 +18,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, type 
   const [step, setStep] = useState<'upload' | 'preview' | 'complete'>('upload')
 
   const importStore = useImportStore()
-  const toastStore = useToastStore()
+  const showToast = useToastStore((state) => state.showToast)
   const customerStore = useCustomerStore()
   const productStore = useProductStore()
 
@@ -46,7 +46,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, type 
       setStep('preview')
     } catch (err) {
       console.error('File select error:', err)
-      toastStore.showToast('Failed to parse file. Check browser console for details.', 'error')
+      showToast('Failed to parse file. Check browser console for details.', 'error')
     }
   }
 
@@ -62,7 +62,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, type 
         await importStore.bulkImportBills(importStore.previewData)
       }
 
-      toastStore.showToast(
+      showToast(
         `Successfully imported ${importStore.previewData.length} ${type}`,
         'success'
       )
@@ -71,7 +71,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, type 
         handleClose()
       }, 1500)
     } catch (err) {
-      toastStore.showToast(`Failed to import ${type}`, 'error')
+      showToast(`Failed to import ${type}`, 'error')
     }
   }
 

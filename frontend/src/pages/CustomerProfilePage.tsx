@@ -38,14 +38,18 @@ export const CustomerProfilePage: React.FC = () => {
     try {
       const [customerRes, billsRes] = await Promise.all([
         api.get(`/customers/${customerId}`),
-        api.get(`/bills/customer/${customerId}`),
+        api.get(`/bills/customer/${customerId}`).catch(() => ({ data: { data: [] } }))
       ])
 
       setCustomer(customerRes.data.data.customer)
-      setRecentTransactions(customerRes.data.data.recent_transactions)
-      setBills(billsRes.data.data)
+      setRecentTransactions(customerRes.data.data.recent_transactions || [])
+      setBills(billsRes.data.data || [])
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to load customer data')
+      setError(
+        err.response?.status === 404
+          ? 'Customer not found. They may have been deleted.'
+          : err.response?.data?.detail || 'Failed to load customer data'
+      )
     } finally {
       setIsLoading(false)
     }
@@ -287,24 +291,22 @@ export const CustomerProfilePage: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-white">
-                            Bill #{bill.bill_id.slice(-8)}
+                            Bill #{(bill.bill_id || bill._id || '').toString().slice(-8)}
                           </p>
                           <p className="text-xs text-on-surface-variant mt-1">{billDate}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-bold text-neon-teal">
-                            ₹{bill.total_amount.toLocaleString()}
+                            ₹{(bill.total ?? bill.total_amount ?? 0).toLocaleString()}
                           </p>
                           <p
                             className={`text-xs mt-1 ${
-                              bill.payment_status === 'PAID'
+                              bill.paid === true
                                 ? 'text-neon-teal'
-                                : bill.payment_status === 'PARTIAL'
-                                ? 'text-neon-orange'
                                 : 'text-neon-pink'
                             }`}
                           >
-                            {bill.payment_status}
+                            {bill.paid ? 'Paid' : 'Unpaid'}
                           </p>
                         </div>
                       </div>

@@ -1,5 +1,6 @@
-import React, { useState, useCallback } from 'react'
+import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useToastStore } from '@/store/toastStore'
 
 interface ToastProps {
   message: string
@@ -27,45 +28,23 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose }) => {
   )
 }
 
-interface ToastStore {
-  toasts: Array<{ id: string; message: string; type: 'success' | 'error' }>
-  showToast: (message: string, type: 'success' | 'error') => void
-  removeToast: (id: string) => void
-}
+const ToastContainer: React.FC = () => {
+  const toasts = useToastStore((state) => state.toasts)
+  const removeToast = useToastStore((state) => state.removeToast)
 
-const useToastStore: () => ToastStore = () => {
-  const [toasts, setToasts] = useState<ToastStore['toasts']>([])
-
-  const showToast = useCallback((message: string, type: 'success' | 'error') => {
-    const id = Date.now().toString()
-    setToasts((prev) => [...prev, { id, message, type }])
-  }, [])
-
-  const removeToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id))
-  }, [])
-
-  return { toasts, showToast, removeToast }
-}
-
-interface ToastContainerProps {
-  store: ReturnType<typeof useToastStore>
-}
-
-const ToastContainer: React.FC<ToastContainerProps> = ({ store }) => {
   return (
     <AnimatePresence>
-      {store.toasts.map((toast) => (
+      {toasts.map((toast) => (
         <Toast
           key={toast.id}
           message={toast.message}
           type={toast.type}
-          onClose={() => store.removeToast(toast.id)}
+          onClose={() => removeToast(toast.id)}
         />
       ))}
     </AnimatePresence>
   )
 }
 
-export { useToastStore, ToastContainer }
-export type { ToastStore }
+export { Toast, ToastContainer, useToastStore }
+export type { Toast as ToastType }

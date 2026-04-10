@@ -16,7 +16,13 @@ const TITLE_MAP: Record<string, string> = {
 export const MainLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
-  const title = TITLE_MAP[location.pathname] || 'Dashboard'
+  
+  const getTitle = (pathname: string): string => {
+    if (TITLE_MAP[pathname]) return TITLE_MAP[pathname]
+    if (pathname.startsWith('/customers/')) return 'Customer Profile'
+    return 'Dashboard'
+  }
+  const title = getTitle(location.pathname)
 
   return (
     <div className="flex h-screen overflow-hidden relative" style={{ backgroundColor: '#0D0D0D' }}>

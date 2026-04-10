@@ -107,10 +107,10 @@ export const AIPage: React.FC = () => {
                     <Users className="w-4 h-4 text-neon-teal" />
                     <p className="text-sm font-medium text-on-surface-variant">Top Customer</p>
                   </div>
-                  {insights?.top_3_customers && insights.top_3_customers.length > 0 ? (
+                  {insights?.top_customers && insights.top_customers.length > 0 ? (
                     <div>
-                      <p className="text-lg font-bold text-white">{insights.top_3_customers[0].name}</p>
-                      <p className="text-sm text-neon-teal">₹{insights.top_3_customers[0].total_udhaar.toLocaleString('en-IN')}</p>
+                      <p className="text-lg font-bold text-white">{insights.top_customers[0].name}</p>
+                      <p className="text-sm text-neon-teal">₹{insights.top_customers[0].total_udhaar.toLocaleString('en-IN')}</p>
                     </div>
                   ) : (
                     <p className="text-on-surface-variant">No data yet</p>

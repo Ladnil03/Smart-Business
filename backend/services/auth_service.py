@@ -90,6 +90,10 @@ async def update_profile(
             if existing:
                 return {"error": "Email already in use."}
         
+        # Validate photo size
+        if payload.photo and len(payload.photo) > 300_000:
+            return {"error": "Photo too large. Please use a smaller image."}
+        
         # Build update dict with only provided fields
         update_data = {}
         if payload.full_name is not None:

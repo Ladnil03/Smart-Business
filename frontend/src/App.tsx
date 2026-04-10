@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { ToastContainer } from '@/components/ui/Toast'
 
 // Pages
 import { LoginPage } from '@/pages/LoginPage'
@@ -26,31 +27,34 @@ import { ProtectedLayout } from '@/components/layout/ProtectedLayout'
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+    <>
+      <ToastContainer />
+      <BrowserRouter>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
 
-        {/* Protected routes - auth checked here */}
-        <Route element={<ProtectedLayout />}>
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/customers" element={<CustomersPage />} />
-          <Route path="/customers/:id" element={<CustomerProfilePage />} />
-          <Route path="/products" element={<ProductsPage />} />
-          <Route path="/bills" element={<BillsPage />} />
-          <Route path="/ai" element={<AIPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-        </Route>
+          {/* Protected routes - auth checked here */}
+          <Route element={<ProtectedLayout />}>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/customers" element={<CustomersPage />} />
+            <Route path="/customers/:id" element={<CustomerProfilePage />} />
+            <Route path="/products" element={<ProductsPage />} />
+            <Route path="/bills" element={<BillsPage />} />
+            <Route path="/ai" element={<AIPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Route>
 
-        {/* Root redirect */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          {/* Root redirect */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-        {/* 404 fallback */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </BrowserRouter>
+          {/* 404 fallback */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </>
   )
 }
 

@@ -34,9 +34,10 @@ export const DashboardPage: React.FC = () => {
       try {
         const res = await api.get("/bills/")
         const bills = res.data.data
-        const byMonth = bills.reduce((acc: any, b: any) => {
+        const byMonth = (bills || []).reduce((acc: Record<string, number>, b: any) => {
+          if (!b?.created_at) return acc
           const month = new Date(b.created_at).toLocaleString("default", { month: "short" })
-          acc[month] = (acc[month] || 0) + b.total
+          acc[month] = (acc[month] || 0) + (b.total || 0)
           return acc
         }, {})
         setChartData(Object.entries(byMonth).map(([name, revenue]) => ({ name, revenue, sales: 0 })))
@@ -322,7 +323,7 @@ export const DashboardPage: React.FC = () => {
                           <button
                             onClick={() => {
                               // Find the product in the products array to get full details
-                              const fullProduct = products.find((p) => p.name === item.name)
+                              const fullProduct = products.find((p) => p.sku === item.sku)
                               if (fullProduct) {
                                 setRestockingProduct(fullProduct)
                               }

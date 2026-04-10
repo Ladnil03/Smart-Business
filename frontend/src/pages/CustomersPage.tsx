@@ -6,7 +6,7 @@ import { CustomerLedgerDrawer } from '@/components/CustomerLedgerDrawer'
 import { ImportModal } from '@/components/ui/ImportModal'
 import { useCustomerStore } from '@/store/customerStore'
 import { useTransactionStore } from '@/store/transactionStore'
-import { useToastStore, ToastContainer } from '@/components/ui/Toast'
+import { useToastStore } from '@/store/toastStore'
 import { Plus, Search, Edit2, Trash2, Users, CreditCard, BookOpen, MessageCircle, Upload } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '@/lib/api'
@@ -19,7 +19,7 @@ export const CustomersPage: React.FC = () => {
   const deleteCustomer = useCustomerStore((state) => state.deleteCustomer)
   
   const { createTransaction } = useTransactionStore()
-  const toastStore = useToastStore()
+  const showToast = useToastStore((state) => state.showToast)
   
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -94,12 +94,12 @@ export const CustomersPage: React.FC = () => {
         amount: paymentAmount,
         note: paymentNote,
       })
-      toastStore.showToast('Payment recorded successfully', 'success')
+      showToast('Payment recorded successfully', 'success')
       setPayingCustomer(null)
       setPaymentAmount(0)
       setPaymentNote('')
     } catch (err) {
-      toastStore.showToast('Failed to record payment', 'error')
+      showToast('Failed to record payment', 'error')
     } finally {
       setIsPaymentSubmitting(false)
     }
@@ -112,7 +112,7 @@ export const CustomersPage: React.FC = () => {
       const url = response.data.data.url
       window.open(url, '_blank')
     } catch (err) {
-      toastStore.showToast('Failed to generate WhatsApp message', 'error')
+      showToast('Failed to generate WhatsApp message', 'error')
     } finally {
       setWhatsappLoadingId(null)
     }
@@ -416,9 +416,6 @@ export const CustomersPage: React.FC = () => {
         onClose={() => setIsImportModalOpen(false)}
         type="customers"
       />
-
-      {/* Toast Container */}
-      <ToastContainer store={toastStore} />
     </div>
   )
 }
